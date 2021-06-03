@@ -2,17 +2,15 @@ require "socket"
 require "thread"
 require 'date'
 
-server = TCPServer.new("localhost", 28561)
+server = TCPServer.new("192.168.1.8", 28561)#TCPServer.new("localhost", 28561)
 =begin
-
 This is set to run all rspec tests.
 and to test with only one client.
-To test multithreads, change to TCPSocket.open("192.168.1.8", 28561) or whatever is local IP on your network
+To test multithreads, change to TCPServer.new("192.168.1.8", 28561) or whatever is local IP on your network
 Switch ip to localhost if test with only 1 client
-
 =end
 
-@data = Hash.new { |hash, key| hash[key] = {} }
+@data = Hash.new {  }
 @mutex = Mutex.new
 @keysPurger = nil
 @i=4 #initialize unique id implemented like a counter
@@ -34,28 +32,28 @@ DAYS_30 = 2592000
 #    end
 # end
 
-def checkExpirationNoUnix(value, expTime, remote_ip, key)
+def checkExpirationNoUnix(value, expTime, key)
   date = DateTime.strptime(value.split("/sep")[5]).to_time #Get the date when the variable was SET
   diff = DateTime.now().to_time - date
   if (diff.to_f >= expTime.to_f)
-    @data[remote_ip][key] = nil
+    @data[key] = nil
   end
 end
 
-def checkExpirationUnix(expTime, remote_ip, key)
+def checkExpirationUnix(expTime, key)
   date = Time.now.to_i
   if (expTime<=date)
-    @data[remote_ip][key] = nil
+    @data[key] = nil
   end
 end
 
-def updateData(line, remote_ip, varName, flag, size, ttl)
-  @data[remote_ip][varName] = line.strip+"/sep#{flag}"+"/sep#{size}"+"/sep#{@i}"+"/sep#{ttl}"+"/sep"+DateTime.now().to_s
+def updateData(line, varName, flag, size, ttl)
+  @data[varName] = line.strip+"/sep#{flag}"+"/sep#{size}"+"/sep#{@i}"+"/sep#{ttl}"+"/sep"+DateTime.now().to_s
   @i += 1
 end
 
-def pendData(line, remote_ip, varName, size,mode)
-  existingDataSplitted = @data[remote_ip][varName].split("/sep")
+def pendData(line, varName, size,mode)
+  existingDataSplitted = @data[varName].split("/sep")
   aux = existingDataSplitted[2].to_i
   aux+=size.to_i
   existingDataSplitted[2] = aux.to_s
@@ -65,25 +63,24 @@ def pendData(line, remote_ip, varName, size,mode)
   elsif (mode=="pre")
     existingDataSplitted[0] = line.strip+existingDataSplitted[0]
   end
-  @data[remote_ip][varName] = existingDataSplitted.join("/sep")
+  @data[varName] = existingDataSplitted.join("/sep")
   @i += 1
 end
 
 
 loop do
   Thread.start(server.accept) do |session| #accept client
-    sock_domain, remote_port, remote_hostname, remote_ip = session.peeraddr
 
     @mutex.synchronize do
       @keysPurger = Thread.start do
         loop do
-          @data[remote_ip].each do |key, value|
+          @data.each do |key, value|
             expTime = value.split("/sep")[4]
             if (expTime.to_i!=0) #If the variable is not set to last forever
               if(expTime.to_i > DAYS_30) #Interpret ttl as UNIX time
-                checkExpirationUnix(expTime, remote_ip, key)
+                checkExpirationUnix(expTime, key)
               else #Interpret time as seconds from the time the variable was set
-                checkExpirationNoUnix(value, expTime, remote_ip, key)
+                checkExpirationNoUnix(value, expTime, key)
               end
             end
           end
@@ -92,8 +89,6 @@ loop do
       end
     end
 
-
-    puts "Main thread"
     thread_status ||= WAITING_NEW_COMMAND #initialize thread status
 
     lineArr=[] #Initialize variables
@@ -161,7 +156,7 @@ loop do
             keys = line.strip.split(" ")
             keys.each_with_index { |item, index|
               if(index!=0)#ignore get in [0]
-                dataitem = @data[remote_ip][item]
+                dataitem = @data[item]
                 if (dataitem)
                   datasplit = dataitem.split("/sep")
                   response+="VALUE #{item} #{datasplit[1]} #{datasplit[2]}\n"
@@ -176,7 +171,7 @@ loop do
             keys = line.strip.split(" ")
             keys.each_with_index { |item, index|
               if(index!=0)#ignore get in [0]
-                dataitem = @data[remote_ip][item]
+                dataitem = @data[item]
                 if(dataitem)
                   datasplit = dataitem.split("/sep")
                   response+="VALUE #{item} #{datasplit[1]} #{datasplit[2]} #{datasplit[3]}\n"
@@ -191,7 +186,7 @@ loop do
             session.close
           when "PURGE" #Exit
             puts "PURGING KEYS"
-            @data[remote_ip] = {}
+            @data = {}
           else #No match with any known command
             session.puts "ERROR\0"
           end #END CASE
@@ -200,7 +195,7 @@ loop do
           if(line.strip.match(/^\w*$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if(ttl.to_i>=0)
-                updateData(line, remote_ip, varName, flag, size, ttl)
+                updateData(line, varName, flag, size, ttl)
               end
               session.puts "STORED\0"
             else#BYTE AMOUNTS DO NOT MATCH
@@ -213,11 +208,11 @@ loop do
         elsif(thread_status==WAITING_ADD_VALUE) #If im waiting for the value of the add command
           if(line.strip.match(/^\w*$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
-              if (@data[remote_ip][varName])#IF it exists we dont store anything
+              if (@data[varName])#IF it exists we dont store anything
                 session.puts "NOT_STORED\0"
               else
                 if(ttl.to_i>=0)
-                  updateData(line, remote_ip, varName, flag, size, ttl)
+                  updateData(line, varName, flag, size, ttl)
                 end
                 session.puts "STORED\0"
               end#END IF DATA EXISTS ALREADY
@@ -231,9 +226,9 @@ loop do
         elsif(thread_status==WAITING_REPLACE_VALUE) #If im waiting for the value of the replace command
           if(line.strip.match(/^\w*$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
-              if (@data[remote_ip][varName])#We only update if it exists already
+              if (@data[varName])#We only update if it exists already
                 if(ttl.to_i>=0)
-                  updateData(line, remote_ip, varName, flag, size, ttl)
+                  updateData(line, varName, flag, size, ttl)
                 end
                 session.puts "STORED\0"
               else
@@ -249,8 +244,8 @@ loop do
         elsif(thread_status==WAITING_APPEND_VALUE) #If im waiting for the value of the append command
           if(line.strip.match(/^\w*$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
-              if (@data[remote_ip][varName])#ONLY UPDATE IF IT EXISTS
-                pendData(line, remote_ip, varName, size, "ap")
+              if (@data[varName])#ONLY UPDATE IF IT EXISTS
+                pendData(line, varName, size, "ap")
                 session.puts "STORED\0"
               else#DOES NOT EXIST
                 session.puts "NOT_STORED\0"
@@ -265,8 +260,8 @@ loop do
         elsif(thread_status==WAITING_PREPEND_VALUE) #If im waiting for the value of the prepend command
           if(line.strip.match(/^\w*$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
-              if (@data[remote_ip][varName])
-                pendData(line,remote_ip, varName, size, "pre")
+              if (@data[varName])
+                pendData(line, varName, size, "pre")
                 session.puts "STORED\0"
               else#DOES NOT EXIST
                 session.puts "NOT_STORED\0"
@@ -281,11 +276,11 @@ loop do
         elsif(thread_status==WAITING_CAS_VALUE) #If im waiting for the value of the prepend command
           if(line.strip.match(/^\w*$/))#Check that line matches a good value
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)#Check byte sizes
-              if(@data[remote_ip][varName])#Check variable exists
-                dataArray = @data[remote_ip][varName].split("/sep")
+              if(@data[varName])#Check variable exists
+                dataArray = @data[varName].split("/sep")
                 if(casKey.to_i==dataArray[3].to_i)#Check if keys are the same
                   if(ttl.to_i>=0)
-                    updateData(line, remote_ip, varName, flag, size, ttl)
+                    updateData(line, varName, flag, size, ttl)
                   end
                   session.puts "STORED\0"
                 else#IF KEYS DO NOT MATCH

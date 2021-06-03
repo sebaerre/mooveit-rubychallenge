@@ -1,15 +1,11 @@
 require "socket"
 
-socket = TCPSocket.open("localhost", 28561)
+socket = TCPSocket.open("192.168.1.8", 28561)#TCPSocket.open("localhost", 28561)
 =begin
-
 This is set to run all rspec tests.
 and to test with only one client.
 To test multithreads, change to TCPSocket.open("192.168.1.8", 28561) or whatever is local IP on your network
 Switch ip to localhost if test with only 1 client
-
-
-
 =end
 
 loop do
