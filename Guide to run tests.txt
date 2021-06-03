@@ -1,0 +1,4 @@
+gem install rspec
+rspec --init
+put all tests inside spec folder
+Create lib folder at the same level as spec folder and put clientclass inside lib folder
