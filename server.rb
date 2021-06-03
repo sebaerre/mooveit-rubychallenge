@@ -2,7 +2,7 @@ require "socket"
 require "thread"
 require 'date'
 
-server = TCPServer.new("192.168.1.8", 28561)#TCPServer.new("localhost", 28561)
+server = TCPServer.new("localhost", 28561)
 =begin
 This is set to run all rspec tests.
 and to test with only one client.
