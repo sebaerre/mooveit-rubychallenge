@@ -17,6 +17,8 @@ This command is used to save data under the key <key>, which can then be retriev
 
 -<flags> Is extra info which gets stored right next to the data. Since the official documentation says its 16-bit unsigned int, the server expects to get between 1 and 2 digit integer.
 -<exptime> Is the expiration time of the data expressed in seconds. If the server gets a value higher than 30 days in seconds (2592000), it will interpret the time as UNIX time.
+If a value of 0 is used, the data will never expire.
+If a value <0 is used, the data will immediatly expire (will never get stored)
 The server expects to get between 1 and 12 digits for this.
 -<bytesize> Is the amount of bytes that are going to be stored under that key. Since each character is 1 byte, the amount of bytes set here has to be the same number of characters that
 are gonna be stored.
@@ -87,3 +89,261 @@ It works exactly as the get command, but with the difference that it also return
 
 1) PURGE
 Used only with testing purposes, it deletes all data for the current session.
+
+==================Sample Commands==================
+==================SET==================
+set testvar 0 900 4
+
+test
+STORED
+get testvar 
+
+VALUE testvar 0 4
+test
+END
+
+set neverexpire 1 0 4
+
+neve
+STORED
+get neverexpire 
+
+VALUE neverexpire 1 4
+neve
+END
+
+set errorchunk 0 900 16
+
+test
+
+CLIENT_ERROR bad data chunk
+
+==================ADD==================
+set testadd 0 900 4
+
+test
+STORED
+get testadd
+
+VALUE testadd 0 4
+test
+END
+add testadd 0 900 10
+
+addedvalue
+
+NOT_STORED
+get testadd
+
+VALUE testadd 0 4
+test
+END
+add newValue 0 900 4
+
+test
+STORED
+get newValue
+
+VALUE newValue 0 4
+test
+END
+
+add errorchunk 0 900 16
+
+test
+
+CLIENT_ERROR bad data chunk
+==================REPLACE==================
+set testreplace 0 900 4
+
+test
+STORED
+get testreplace
+
+VALUE testreplace 0 4
+test
+END
+replace testreplace 1 900 13
+
+replacedvalue
+STORED
+get testreplace
+
+VALUE testreplace 1 13
+replacedvalue
+END
+replace newValue 0 900 4
+
+test
+
+NOT_STORED
+get newValue
+END
+replace errorchunk 0 900 16
+
+test
+
+CLIENT_ERROR bad data chunk
+==================APPEND==================
+set testappend 0 900 4
+
+test
+STORED
+append testappend 1 900 11
+
+appendvalue
+
+STORED
+get testappend
+
+VALUE testappend 1 15
+testappendvalue
+END
+append newValue 0 900 4
+
+test
+
+NOT_STORED
+get newValue
+END
+
+append errorchunk 0 900 16
+
+test
+
+CLIENT_ERROR bad data chunk
+==================PREPEND==================
+set testprepend 0 900 4
+
+test
+STORED
+prepend testprepend 1 900 11
+
+prependvalue
+STORED
+get testprepend
+
+VALUE testprepend 1 15
+prependvaluetest
+END
+
+prepend newValue 0 900 4
+
+test
+NOT_STORED
+get newValue
+
+END
+
+prepend errorchunk 0 900 16
+
+test
+
+CLIENT_ERROR bad data chunk
+==================CAS==================
+cas tottallynewvalue 0 900 4 5
+
+none
+
+NOT_FOUND
+
+cas chunkerror 0 900 5 5
+
+nonesnones
+
+CLIENT_ERROR bad data chunk
+
+set testvar 0 900 4
+
+test
+STORED
+gets testvar
+
+VALUE testvar 0 4 9
+test
+END
+
+cas testvar 0 900 4 10 #<--wrong cas key
+
+test
+
+EXISTS
+
+replace testvar 0 900 4
+
+yeah
+
+STORED
+cas testvar 0 900 4 9 #<--The key changed since a storage command (replace) was called on the key before calling cas
+
+test
+
+EXISTS
+gets testvar
+
+VALUE testvar 0 4 10 #<--The key has changed
+test
+END
+
+cas testvar 0 900 4 10
+
+cass
+
+STORED
+get testvar
+
+VALUE testvar 0 4
+cass
+END
+==================GET==================
+get newvar
+END
+set newvar 0 900 4
+
+test
+
+STORED
+set othervar 1 900 5
+
+words
+
+STORED
+get newvar
+
+VALUE newvar 0 4
+test
+END
+get foo othervar newvar anothervar
+
+VALUE othervar 1 5
+words
+VALUE newvar 0 4
+test
+END
+==================GETS==================
+get newvar
+END
+set newvar 0 900 4
+
+test
+
+STORED
+set othervar 1 900 5
+
+words
+
+STORED
+gets newvar
+
+VALUE newvar 0 4 8
+test
+END
+gets foo othervar newvar anothervar
+
+VALUE othervar 1 5 9
+words
+VALUE newvar 0 4 8
+test
+END
+==================TEST==================
+To run the tests, simply run "gem install rspec" on the project root folder, and after instalation is done run the "rspec -fd" command on the project root folder.

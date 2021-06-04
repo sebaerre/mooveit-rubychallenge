@@ -102,7 +102,7 @@ loop do
       @mutex.synchronize do
         if(thread_status == WAITING_NEW_COMMAND) #Check thread status, if waiting for command check command syntax
           case line.strip
-          when /^set \w* \d{1,2} \d{1,12} \d{1,7}$/
+          when /^set \w* \d{1,2} -?\d{1,12} \d{1,7}$/
             thread_status = WAITING_SET_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -110,7 +110,7 @@ loop do
             ttl = lineArr[3]
             size = lineArr[4]
             session.puts "\0"
-          when /^add \w* \d{1,2} \d{1,12} \d{1,7}$/
+          when /^add \w* \d{1,2} -?\d{1,12} \d{1,7}$/
             thread_status = WAITING_ADD_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -118,7 +118,7 @@ loop do
             ttl = lineArr[3]
             size = lineArr[4]
             session.puts "\0"
-          when /^replace \w* \d{1,2} \d{1,12} \d{1,7}$/
+          when /^replace \w* \d{1,2} -?\d{1,12} \d{1,7}$/
             thread_status = WAITING_REPLACE_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -126,7 +126,7 @@ loop do
             ttl = lineArr[3]
             size = lineArr[4]
             session.puts "\0"
-          when /^append \w* \d{1,2} \d{1,12} \d{1,7}$/
+          when /^append \w* \d{1,2} -?\d{1,12} \d{1,7}$/
             thread_status = WAITING_APPEND_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -134,7 +134,7 @@ loop do
             ttl = lineArr[3]
             size = lineArr[4]
             session.puts "\0"
-          when /^prepend \w* \d{1,2} \d{1,12} \d{1,7}$/
+          when /^prepend \w* \d{1,2} -?\d{1,12} \d{1,7}$/
             thread_status = WAITING_PREPEND_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -142,7 +142,7 @@ loop do
             ttl = lineArr[3]
             size = lineArr[4]
             session.puts "\0"
-          when /^cas \w* \d{1,2} \d{1,7} \d{1,12} \d{1,4}$/
+          when /^cas \w* \d{1,2} \d{1,7} -?\d{1,12} \d{1,4}$/
             thread_status = WAITING_CAS_VALUE
             lineArr = line.strip.split(" ")
             varName = lineArr[1]
@@ -192,7 +192,7 @@ loop do
           end #END CASE
 
         elsif(thread_status==WAITING_SET_VALUE) #If im waiting for the value of the set command
-          if(line.strip.match(/^\w*$/))
+          if(line.strip.match(/^\w{1,}$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if(ttl.to_i>=0)
                 updateData(line, varName, flag, size, ttl)
@@ -206,7 +206,7 @@ loop do
           end#end if linestripmatches
           thread_status=WAITING_NEW_COMMAND
         elsif(thread_status==WAITING_ADD_VALUE) #If im waiting for the value of the add command
-          if(line.strip.match(/^\w*$/))
+          if(line.strip.match(/^\w{1,}$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if (@data[varName])#IF it exists we dont store anything
                 session.puts "NOT_STORED\0"
@@ -224,7 +224,7 @@ loop do
           end #End if linestripmatches
           thread_status=WAITING_NEW_COMMAND
         elsif(thread_status==WAITING_REPLACE_VALUE) #If im waiting for the value of the replace command
-          if(line.strip.match(/^\w*$/))
+          if(line.strip.match(/^\w{1,}$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if (@data[varName])#We only update if it exists already
                 if(ttl.to_i>=0)
@@ -242,7 +242,7 @@ loop do
           end #End if line matches
           thread_status=WAITING_NEW_COMMAND
         elsif(thread_status==WAITING_APPEND_VALUE) #If im waiting for the value of the append command
-          if(line.strip.match(/^\w*$/))
+          if(line.strip.match(/^\w{1,}$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if (@data[varName])#ONLY UPDATE IF IT EXISTS
                 pendData(line, varName, size, "ap")
@@ -258,7 +258,7 @@ loop do
           end#end if linestripmatches
           thread_status=WAITING_NEW_COMMAND
         elsif(thread_status==WAITING_PREPEND_VALUE) #If im waiting for the value of the prepend command
-          if(line.strip.match(/^\w*$/))
+          if(line.strip.match(/^\w{1,}$/))
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)
               if (@data[varName])
                 pendData(line, varName, size, "pre")
@@ -274,7 +274,7 @@ loop do
           end#end if linestripmatches
           thread_status=WAITING_NEW_COMMAND
         elsif(thread_status==WAITING_CAS_VALUE) #If im waiting for the value of the prepend command
-          if(line.strip.match(/^\w*$/))#Check that line matches a good value
+          if(line.strip.match(/^\w{1,}$/))#Check that line matches a good value
             if(size == line.strip.bytes.to_a.length().to_s and size!=0)#Check byte sizes
               if(@data[varName])#Check variable exists
                 dataArray = @data[varName].split("/sep")
