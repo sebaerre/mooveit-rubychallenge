@@ -16,10 +16,12 @@ The server supports the following commands:
 This command is used to save data under the key \<key>, which can then be retrieved using get / gets.
 
 -\<flags> Is extra info which gets stored right next to the data. Since the official documentation says its 16-bit unsigned int, the server expects to get between 1 and 2 digit integer.
+
 -\<exptime> Is the expiration time of the data expressed in seconds. If the server gets a value higher than 30 days in seconds (2592000), it will interpret the time as UNIX time.
 If a value of 0 is used, the data will never expire.
 If a value \<0 is used, the data will immediatly expire (will never get stored)
 The server expects to get between 1 and 12 digits for this.
+
 -\<bytesize> Is the amount of bytes that are going to be stored under that key. Since each character is 1 byte, the amount of bytes set here has to be the same number of characters that
 are gonna be stored.
 
