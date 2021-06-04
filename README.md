@@ -85,11 +85,13 @@ If only one key is provided and there is no data saved in that key, the server r
 The data returned contains the value, the flags and the amount of bytes.
 
 1) gets \<key>*
+
 It works exactly as the get command, but with the difference that it also returns the cas unique key needed to call the cas command.
 
 ==================Special Commands==================
 
 1) PURGE
+
 Used only with testing purposes, it deletes all data for the current session.
 
 ==================Sample Commands==================
