@@ -6,6 +6,8 @@ The server is implemented following the TCP protocol, and listens for connection
 Its multi-threaded, so it can listen to many simultaneous connections from different clients and uses mutex as a semaphore, to control the lock over the shared resources.
 It also follows the same syntax and delivers the same responses as memcached.
 
+To run the server simply set the IP where the server should be hosted in the file server.rb and run it.
+The project also includes a client.rb file that you can use to send commands to the server, provided that you also set the same IP on the client.rb file.
 
 The server supports the following commands:
 
