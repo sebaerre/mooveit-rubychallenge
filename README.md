@@ -95,6 +95,7 @@ Used only with testing purposes, it deletes all data for the current session.
 ==================Sample Commands==================
 
 ==================SET==================
+
 set testvar 0 900 4
 
 test
@@ -122,6 +123,7 @@ test
 CLIENT_ERROR bad data chunk
 
 ==================ADD==================
+
 set testadd 0 900 4
 
 test
@@ -156,7 +158,9 @@ add errorchunk 0 900 16
 test
 
 CLIENT_ERROR bad data chunk
+
 ==================REPLACE==================
+
 set testreplace 0 900 4
 
 test
@@ -187,7 +191,9 @@ replace errorchunk 0 900 16
 test
 
 CLIENT_ERROR bad data chunk
+
 ==================APPEND==================
+
 set testappend 0 900 4
 
 test
@@ -215,7 +221,9 @@ append errorchunk 0 900 16
 test
 
 CLIENT_ERROR bad data chunk
+
 ==================PREPEND==================
+
 set testprepend 0 900 4
 
 test
@@ -243,7 +251,9 @@ prepend errorchunk 0 900 16
 test
 
 CLIENT_ERROR bad data chunk
+
 ==================CAS==================
+
 cas tottallynewvalue 0 900 4 5
 
 none
@@ -298,7 +308,9 @@ get testvar
 VALUE testvar 0 4
 cass
 END
+
 ==================GET==================
+
 get newvar
 END
 set newvar 0 900 4
@@ -323,7 +335,9 @@ words
 VALUE newvar 0 4
 test
 END
+
 ==================GETS==================
+
 get newvar
 END
 set newvar 0 900 4
@@ -348,5 +362,7 @@ words
 VALUE newvar 0 4 8
 test
 END
+
 ==================TEST==================
+
 To run the tests, simply run "gem install rspec" on the project root folder, and after instalation is done run the "rspec -fd" command on the project root folder.
