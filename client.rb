@@ -1,4 +1,5 @@
 require "socket"
+require './utils/client_constants'
 
 socket = TCPSocket.open("localhost", 28561)
 =begin
@@ -13,7 +14,14 @@ loop do
   socket.puts input # Send command to server
 
   line = socket.gets("\0") #Get server response
+  if(line.strip == INSERT_VALUE)
+    input = gets.chomp
+
+    socket.puts input
+    line = socket.gets("\0")
+  end
   puts line
+
 
   break if input=="EXIT" #If client types EXIT terminate connection
 end

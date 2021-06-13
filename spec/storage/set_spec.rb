@@ -1,36 +1,38 @@
 require 'spec_helper'
-require 'clientclass'
+require './spec/helpers/clientclass'
 
 RSpec.describe Client do
   before(:all) do
     @client = Client.new("localhost",28561)
   end
   describe 'set command' do
-    context 'dataexists' do
-      before(:each) do
-        line = @client.set_command("testvar","0","900","9","testvalue")
+    let(:storedValue) { "STORED" }
+    let(:clientError) { "CLIENT_ERROR bad data chunk" }
+    let(:expectedValue) {"VALUE testvar 0 9\ntestvalue\nEND"}
+    let(:error) { "ERROR" }
+
+    it 'should receive STORED message from server' do
+      line = @client.storage_command("set","testvar","0","900","9","","testvalue")
+      expect(line.strip).to eq(storedValue)
+    end
+
+    it 'we should be able to get stored data' do
+      line = @client.storage_command("set","testvar","0","900","9","","testvalue")
+      line = @client.retrieval_command("get",["testvar"])
+      expect(line.strip).to eq(expectedValue)
+    end
+
+    context 'if bytes amount do not match' do
+      it 'should return CLIENT_ERROR bad data chunk' do
+        line = @client.storage_command("set","testvar","0","900","5","","morethan5bytes")
+        expect(line.strip).to eq(clientError)
       end
-
-      it 'should store data successfully' do
-        line = @client.get_command(["testvar"])
-        expect(line.strip).to eq("VALUE testvar 0 9\ntestvalue\nEND")
+    end
+    context 'if missing param' do
+      it 'should return ERROR' do
+        line = @client.storage_command("set","testvar","","900","9","","testvalue")
+        expect(line.strip).to eq(error)
       end
-    end
-
-    #ISOLATED TESTS THAT DO NOT NEED ANY BEFORE CODE
-    it 'should receive STORED message from server if command correct' do
-      line = @client.set_command("testvar","0","900","9","testvalue")
-      expect(line.strip).to eq("STORED")
-    end
-
-    it 'should return ERROR if missing param' do
-      line = @client.set_command("testvar","","900","9","testvalue")
-      expect(line.strip).to eq("ERROR")
-    end
-
-    it 'should return CLIENT_ERROR bad data chunk if byte amounts do not match' do
-      line = @client.set_command("testvar","0","900","5","morethan5bytes")
-      expect(line.strip).to eq("CLIENT_ERROR bad data chunk")
     end
   end
   after(:all) do

@@ -1,54 +1,70 @@
 require 'spec_helper'
-require 'clientclass'
+require './spec/helpers/clientclass'
 
 RSpec.describe Client do
   before(:all) do
     @client = Client.new("localhost",28561)
   end
   describe 'prepend command' do
-    context 'dataexists' do
+    let(:storedValue) { "STORED" }
+    let(:notStoredValue) { "NOT_STORED" }
+    let(:clientError) { "CLIENT_ERROR bad data chunk" }
+    let(:expectedValue) {"VALUE testvar 0 12\nbartestvalue\nEND"}
+    let(:casKeyValue) {"12"}
+    let(:error) { "ERROR" }
+
+    context 'if data exists for the provided key' do
       before(:each) do
-        line = @client.set_command("testvar","0","900","9","testvalue")
+        line = @client.storage_command("set","testvar","0","900","9","","testvalue")
       end
 
-      it 'should prepend data successfully if the variable exists, add the correct number of bytes, and should return correct lines' do
-        line = @client.prepend_command("testvar","0","900","3","bar")
-        line = @client.get_command(["testvar"])
-        expect(line.strip).to eq("VALUE testvar 0 12\nbartestvalue\nEND")
+      it 'should prepend data successfully' do
+        line = @client.storage_command("prepend","testvar","0","900","3","","bar")
+        line = @client.retrieval_command("get",["testvar"])
+        expect(line.strip).to eq(expectedValue)
       end
 
-      it 'should receive STORED message from server if command correct' do
-        line = @client.prepend_command("testvar","0","900","9","testvalue")
-        expect(line.strip).to eq("STORED")
+      it 'should add the correct number of bytes' do
+        line = @client.storage_command("prepend","testvar","0","900","3","","bar")
+        line = @client.retrieval_command("get",["testvar"])
+        expect(line.strip).to include(casKeyValue)
       end
 
-      it 'should update the unique cas key if success' do
-        line = @client.gets_command(["testvar"])
+      it 'should receive STORED message from server' do
+        line = @client.storage_command("prepend","testvar","0","900","9","","testvalue")
+        expect(line.strip).to eq(storedValue)
+      end
+
+      it 'should update the unique cas key' do
+        line = @client.retrieval_command("gets",["testvar"])
         resultarr = line.split(" ")
         prevcaskey = resultarr[4]
 
-        line = @client.prepend_command("testvar","0","900","9","testvalue")
+        line = @client.storage_command("prepend","testvar","0","900","9","","testvalue")
 
-          line = @client.gets_command(["testvar"])
-          resultarr = line.split(" ")
-          expect(resultarr[4]).not_to eq(prevcaskey)
+        line = @client.retrieval_command("gets",["testvar"])
+        resultarr = line.split(" ")
+        expect(resultarr[4]).not_to eq(prevcaskey)
       end
     end
 
-    #ISOLATED TESTS THAT DO NOT NEED ANY BEFORE CODE
-    it 'should return CLIENT_ERROR bad data chunk if byte amounts do not match' do
-      line = @client.prepend_command("testvar","0","900","5","morethan5bytes")
-      expect(line.strip).to eq("CLIENT_ERROR bad data chunk")
+    context 'if byte amounts do not match' do
+      it 'should return CLIENT_ERROR bad data chunk' do
+        line = @client.storage_command("prepend","testvar","0","900","5","","morethan5bytes")
+        expect(line.strip).to eq(clientError)
+      end
     end
-
-    it 'should return NOT_STORED if the provided key does not exist' do
-      line = @client.prepend_command("doesnotexist","0","900","3","bar")
-      expect(line.strip).to eq("NOT_STORED")
+    context 'if data does not exist for the provided key' do
+      it 'should return NOT_STORED' do
+        line = @client.storage_command("prepend","doesnotexist","0","900","3","","bar")
+        expect(line.strip).to eq(notStoredValue)
+      end
     end
-
-    it 'should return ERROR if missing param' do
-      line = @client.prepend_command("testvar","","900","9","testvalue")
-      expect(line.strip).to eq("ERROR")
+    context 'if missing param' do
+      it 'should return ERROR' do
+        line = @client.storage_command("prepend","testvar","","900","9","","testvalue")
+        expect(line.strip).to eq(error)
+      end
     end
 
   end
