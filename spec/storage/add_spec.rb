@@ -1,5 +1,5 @@
 require 'spec_helper'
-require './spec/helpers/clientclass'
+require './spec/helpers/Client'
 
 RSpec.describe Client do
   before(:all) do

@@ -1,3 +1,5 @@
 INSERT_VALUE = "insertvalue"
 CAS="cas"
 PURGE = "PURGE"
+END_TRANSMISSION_STRING = "\0"
+EXIT = "EXIT"

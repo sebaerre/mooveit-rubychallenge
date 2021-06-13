@@ -12,17 +12,13 @@ Switch ip to localhost if test with only 1 client
 loop do
   input = gets.chomp  #Ask client for command
   socket.puts input # Send command to server
-
-  line = socket.gets("\0") #Get server response
+  line = socket.gets(END_TRANSMISSION_STRING) #Get server response
   if(line.strip == INSERT_VALUE)
     input = gets.chomp
-
     socket.puts input
-    line = socket.gets("\0")
+    line = socket.gets(END_TRANSMISSION_STRING)
   end
   puts line
-
-
-  break if input=="EXIT" #If client types EXIT terminate connection
+  break if input==EXIT #If client types EXIT terminate connection
 end
 socket.close
