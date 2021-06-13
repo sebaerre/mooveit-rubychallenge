@@ -4,7 +4,7 @@ require './utils/server_constants'
 
 require './classes/UserCommandParser'
 
-server = TCPServer.new("localhost", 28561)
+server = TCPServer.new("localhost", 28561)#TCPServer.new("localhost", 28561)
 =begin
 This is set to run all rspec tests.
 and to test with only one client.

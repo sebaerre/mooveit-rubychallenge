@@ -66,6 +66,21 @@ class MemcachedHandler
     end
   end
 
+  def checkAndExpireKey(dataitem, item)
+    if (dataitem)
+    expTime = dataitem.ttl.to_i
+    expired = false
+    if (expTime!=0) #If the variable is not set to last forever
+      if(expTime > DAYS_30) #Interpret ttl as UNIX time
+        return checkExpirationUnix(expTime, item)
+      else #Interpret time as seconds from the time the variable was set
+        return checkExpirationNoUnix(expTime, item)
+      end
+    end
+  end
+  return true
+  end
+
   def retrievalCommand(line, session, isGets)
     response = ""
     keys = line.strip.split(" ")
@@ -74,15 +89,7 @@ class MemcachedHandler
         dataitem = @@data[item]
         if (dataitem)
           #item exists, check expiration time
-          expTime = dataitem.ttl.to_i
-          expired = false
-          if (expTime!=0) #If the variable is not set to last forever
-            if(expTime > DAYS_30) #Interpret ttl as UNIX time
-              expired = checkExpirationUnix(expTime, item)
-            else #Interpret time as seconds from the time the variable was set
-              expired = checkExpirationNoUnix(expTime, item)
-            end
-          end
+          expired = checkAndExpireKey(dataitem, item)
           if (!expired) #if it did not expire, return it to the client
             response+="VALUE #{item} #{dataitem.flags} #{dataitem.bsize}"
             if (isGets)
@@ -103,6 +110,7 @@ class MemcachedHandler
     session.puts INSERT_VALUE
     value = session.gets.strip #Get the value of the data we are storing
     if(checkByteSize(value, lineArr[4]))
+      expired = checkAndExpireKey(@@data[lineArr[1]], lineArr[1])
       if (isCas)
         if(@@data[lineArr[1]])  #Check variable exists
           existingData = @@data[lineArr[1]]
